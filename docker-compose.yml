@@ -1,0 +1,81 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: app
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    profiles: ["dev","prod"]
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    ports: ["6379:6379"]
+    profiles: ["dev","prod"]
+
+  api:
+    build: .
+    command: >
+      sh -c "python start.py &&
+             uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload"
+    volumes:
+      - .:/app:rw
+    environment:
+      DB_URL: ${DB_URL}
+      REDIS_URL: ${REDIS_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET}
+      APP_ENV: ${APP_ENV}
+      DEBUG: ${DEBUG}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+    depends_on: [db, redis]
+    ports: ["8000:8000"]
+    profiles: ["dev"]
+
+  api-prod:
+    build: .
+    command: >
+      sh -c "python start.py &&
+             gunicorn -k uvicorn.workers.UvicornWorker
+              --workers 2 --threads 4 --timeout 120
+              --bind 0.0.0.0:8000 backend.main:app"
+    environment:
+      DB_URL: ${DB_URL}
+      REDIS_URL: ${REDIS_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET}
+      APP_ENV: ${APP_ENV}
+      DEBUG: ${DEBUG}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+    depends_on: [db, redis]
+    ports: ["8000:8000"]
+    profiles: ["prod"]
+
+
+  nginx-dev:
+    image: nginx:1.25-alpine
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend:/usr/share/nginx/html:ro
+    ports: ["80:80"]
+    depends_on: [api]           # тільки dev API
+    profiles: ["dev"]
+
+  nginx:
+    image: nginx:1.25-alpine
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend:/usr/share/nginx/html:ro
+    ports: ["80:80"]
+    depends_on: [api-prod]      # тільки prod API
+    profiles: ["prod"]
+
+volumes:
+  pgdata:
+  redisdata:

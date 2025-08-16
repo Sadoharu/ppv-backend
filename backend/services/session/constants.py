@@ -1,0 +1,2 @@
+#v0.5
+ONLINE_TTL_SEC = 90
