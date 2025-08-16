@@ -6,6 +6,9 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
 
+ALLOWED = {"none", "html", "sandbox", "safe", "iframe"}
+ALIASES = {"safe": "sandbox", "iframe": "html"}
+
 
 class EventStatus(str, Enum):
     draft = "draft"
@@ -19,7 +22,7 @@ class EventStatus(str, Enum):
 class CustomMode(str, Enum):
     none = "none"
     html = "html"
-    iframe = "iframe"
+    sandbox = "sandbox"
 
 
 class EventBase(BaseModel):
@@ -60,6 +63,15 @@ class EventBase(BaseModel):
         if starts and ends and ends < starts:
             raise ValueError("ends_at must be >= starts_at")
         return ends
+    @field_validator("custom_mode", mode="before")
+    @classmethod
+    def normalize_mode(cls, v):
+        if v is None:
+            return "none"
+        s = str(v).strip().lower()
+        if s not in ALLOWED:
+            raise ValueError("invalid custom_mode")
+        return ALIASES.get(s, s)
 
 
 class EventCreate(EventBase):
@@ -99,6 +111,15 @@ class EventUpdate(BaseModel):
         if starts and ends and ends < starts:
             raise ValueError("ends_at must be >= starts_at")
         return ends
+    @field_validator("custom_mode", mode="before")
+    @classmethod
+    def normalize_mode(cls, v):
+        if v is None:
+            return v
+        s = str(v).strip().lower()
+        if s not in ALLOWED:
+            raise ValueError("invalid custom_mode")
+        return ALIASES.get(s, s)
 
 
 class EventOut(BaseModel):

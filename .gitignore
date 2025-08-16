@@ -2,3 +2,4 @@ __pycache__/
 nginx/
 *.pyc
 .env
+git-help.sh
