@@ -32,7 +32,7 @@ class AdminUserUpdate(BaseModel):
 
 class AdminUserResponse(AdminUserBase):
     id: int
-    # Можна додати created_at, якщо воно є в моделі
+    name: Optional[str] = None  # Додано опціональне поле name
     
     class Config:
         from_attributes = True

@@ -1,4 +1,3 @@
-#v0.5
 # backend/api/v1/admin/auth.py
 from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Body, Request, Response, Cookie
@@ -7,6 +6,9 @@ from sqlalchemy.orm import Session as DB
 from backend.database import get_db
 from backend.models import AdminUser
 from backend.core.config import settings
+# Додаємо імпорти для /me
+from backend import schemas
+from backend.api.deps import require_admin
 
 from backend.services.authn.passwords import verify_password
 from backend.services.authn.admin_jwt import (
@@ -66,6 +68,7 @@ def admin_login(
         path=path,
     )
     return {"access_token": access, "token_type": "bearer", "role": user.role}
+    
 
 @router.post("/refresh")
 def admin_refresh(
@@ -134,3 +137,14 @@ def admin_logout(response: Response):
     )
 
     return {"ok": True}
+
+@router.get("/me", response_model=schemas.AdminUserResponse)
+def get_current_admin(
+    # Використовуємо require_admin() без аргументів = дозволено будь-якому авторизованому адміну
+    current_admin: AdminUser = Depends(require_admin())
+):
+    """
+    Отримати профіль поточного авторизованого адміністратора.
+    Використовується фронтендом для відображення інфо в сайдбарі та перевірки прав.
+    """
+    return current_admin
