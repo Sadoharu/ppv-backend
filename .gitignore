@@ -3,3 +3,4 @@ nginx/
 *.pyc
 .env
 git-help.sh
+commit_message.txt
