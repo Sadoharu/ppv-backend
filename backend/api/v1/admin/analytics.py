@@ -1,4 +1,3 @@
-# backend/api/v1/analytics.py
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -8,8 +7,10 @@ from typing import Literal, Optional
 from backend.api.deps import get_db, require_admin_token, require_admin
 from backend import models, schemas
 
+# Це адмінський роутер для аналітики
 router = APIRouter(
     tags=["admin:analytics"],
+    # Доступ: Super, Admin (Analyst теж міг би мати доступ, якщо додати цю роль)
     dependencies=[Depends(require_admin("admin", "super"))],
 )
 

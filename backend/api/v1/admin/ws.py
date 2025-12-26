@@ -1,4 +1,3 @@
-# backend/api/v1/admin_ws.py
 from __future__ import annotations
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, Header, Cookie
 from backend.services.authn.admin_jwt import verify_admin_token
@@ -17,6 +16,8 @@ def _extract_bearer(auth: str | None) -> str | None:
         return parts[1]
     return None
 
+# Ми залишаємо доступ для ВСІХ, хто має валідний admin токен.
+# Обмеження на рівні роутера не потрібне, бо ми валідуємо токен вручну.
 @router.websocket("/admin")  # ← якщо prefab у main.py — заміни на "/admin" і додай prefix="/api/ws"
 async def admin_ws(
     websocket: WebSocket,
@@ -36,6 +37,8 @@ async def admin_ws(
     # 3) валідація токена
     try:
         claims = verify_admin_token(tok)
+        # Тут можна додати перевірку claims.get("role") якщо треба заблокувати когось
+        # Наприклад: if claims.get("role") == "banned": raise ...
     except Exception:
         await websocket.close(code=4401)
         return
@@ -45,7 +48,11 @@ async def admin_ws(
 
     # 5) привітання + keep-alive цикл
     try:
-        await websocket.send_json({"type": "welcome", "user": claims.get("adm_id"), "role": claims.get("role")})
+        await websocket.send_json({
+            "type": "welcome", 
+            "user": claims.get("adm_id"), 
+            "role": claims.get("role") # Фронтенд може використати це
+        })
         while True:
             # Чекаємо повідомлення від клієнта; раз на 30с шлемо ping
             try:

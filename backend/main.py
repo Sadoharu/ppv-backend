@@ -24,6 +24,7 @@ from backend.api.v1.admin.events import router as admin_events_router
 from backend.api.v1.admin.sessions import router as admin_sessions_router
 from backend.api.v1.admin.ws import router as admin_ws_router
 from backend.api.v1.admin.event_page_admin import router as admin_event_page_router
+from backend.api.v1.admin import admin_users
 
 
 from backend.api.v1.client.auth import router as client_auth_router
@@ -180,6 +181,7 @@ app.include_router(admin_ws_router, prefix="/api/ws", tags=["admin:ws"])
 app.include_router(admin_events_router, prefix="/api/admin/events", tags=["admin:events"])
 app.include_router(admin_event_page_router,  prefix="/api/admin/events",   tags=["admin:pages"])
 app.include_router(admin_allow_events_router, prefix="/api/admin/codes", tags=["admin:codes-events"])
+app.include_router(admin_users.router, prefix="/api/v1/admin")
 
 
 # --- PUBLIC (JSON каталоги та картки) ----------------------------------------

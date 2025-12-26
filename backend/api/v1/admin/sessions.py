@@ -1,4 +1,3 @@
-# backend/api/v1/admin_sessions.py
 from __future__ import annotations
 from datetime import datetime, timezone
 
@@ -13,6 +12,7 @@ from backend.services.session.online import ccu_estimate, is_online
 from backend.services.session_manager import logout as do_logout
 from backend.services.ws_service import broadcast, publish_terminate
 
+# Доступ: Super, Admin, Support (Support повинен бачити сесії клієнтів)
 router = APIRouter(
     tags=["admin:sessions"],
     dependencies=[Depends(require_admin("admin", "super", "support"))],

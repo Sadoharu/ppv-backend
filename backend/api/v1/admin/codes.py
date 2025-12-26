@@ -29,7 +29,8 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session as DB, selectinload
 from sqlalchemy import or_
 
-from backend.api.deps import get_db, require_admin_token
+# Використовуємо нову систему auth
+from backend.api.deps import get_db, require_admin
 from backend import models, schemas
 from backend.services.authn.codes import hash_code
 from backend.services.repo.access_codes import create_access_codes
@@ -58,15 +59,17 @@ def _batch_label_of(batch_obj) -> Optional[str]:
 
 router = APIRouter(
     tags=["admin:codes"],
-    dependencies=[Depends(require_admin_token)],  # глобальний guard
+    # Глобальний guard прибрано, тепер на кожному ендпоінті окремо
 )
 
 # ───────────────────────── EXPORT CSV ─────────────────────────
+# Доступ: Super, Admin, Manager, Support
 @router.get("/export", response_class=StreamingResponse)
 def export_codes_csv(
     db: DB = Depends(get_db),
     q: str | None = Query(None),
     active: str | None = Query(None),
+    current_admin: models.AdminUser = Depends(require_admin("super", "admin", "manager", "support")),
 ):
     def parse_active(val: str | None) -> bool | None:
         if not val:
@@ -156,6 +159,7 @@ def export_codes_csv(
     return StreamingResponse(buf, media_type="text/csv", headers=headers)
 
 # ───────────────────────── IMPORT CSV ─────────────────────────
+# Доступ: Super, Admin, Manager
 @router.post("/import")
 async def import_codes_csv(
     file: UploadFile = File(...),
@@ -181,7 +185,7 @@ async def import_codes_csv(
     force_event: bool = Form(False),
 
     db: DB = Depends(get_db),
-    current=Depends(require_admin_token),  # тут треба user.id для generated_by
+    current_admin: models.AdminUser = Depends(require_admin("super", "admin", "manager")),
 ):
     def parse_bool(val) -> bool | None:
         if val is None:
@@ -245,7 +249,7 @@ async def import_codes_csv(
         elif hasattr(BatchModel, "name"): kwargs["name"] = label
         elif hasattr(BatchModel, "title"): kwargs["title"] = label
         if hasattr(BatchModel, "generated_by"):
-            kwargs["generated_by"] = str(getattr(current, "id", "")) or ""
+            kwargs["generated_by"] = str(getattr(current_admin, "id", "")) or ""
         batch = BatchModel(**kwargs)
         db.add(batch); db.flush()
         return batch.id
@@ -345,6 +349,7 @@ async def import_codes_csv(
     return {"ok": True, "created": created, "skipped": skipped, "errors": errors}
 
 # ───────────────────────── LIST ─────────────────────────
+# Доступ: Super, Admin, Manager, Support
 @router.get("")
 @router.get("/")
 def list_codes(
@@ -353,6 +358,7 @@ def list_codes(
     offset: int = Query(0, ge=0),
     q: str | None = None,
     active: bool | None = None,
+    current_admin: models.AdminUser = Depends(require_admin("super", "admin", "manager", "support")),
 ):
     BatchModel = getattr(models, "CodeBatch", None)
     has_batch = BatchModel is not None and hasattr(models.AccessCode, "batch_id")
@@ -404,11 +410,13 @@ def list_codes(
     return {"total": total, "items": items}
 
 # ───────────────────────── PATCH ─────────────────────────
+# Доступ: Super, Admin, Manager
 @router.patch("/{code_id}")
 def patch_code(
     code_id: int,
     data: schemas.AccessCodePatch,
     db: DB = Depends(get_db),
+    current_admin: models.AdminUser = Depends(require_admin("super", "admin", "manager")),
 ):
     row = db.get(models.AccessCode, code_id)
     if not row:
@@ -430,10 +438,12 @@ def patch_code(
     return {"detail": "Updated"}
 
 # ─────────────────────── REISSUE ───────────────────────
+# Доступ: Super, Admin, Manager
 @router.post("/{code_id}/reissue")
 def reissue_code(
     code_id: int,
     db: DB = Depends(get_db),
+    current_admin: models.AdminUser = Depends(require_admin("super", "admin", "manager")),
 ):
     row = db.get(models.AccessCode, code_id)
     if not row:
@@ -455,10 +465,12 @@ def reissue_code(
     return {"code": new_plain}
 
 # ─────────────── Force-logout all sessions for code ───────────────
+# Доступ: Super, Admin, Manager
 @router.post("/{code_id}/force-logout")
 def force_logout_all(
     code_id: int,
     db: DB = Depends(get_db),
+    current_admin: models.AdminUser = Depends(require_admin("super", "admin", "manager")),
 ):
     sessions = (
         db.query(models.Session)
@@ -485,10 +497,12 @@ def force_logout_all(
     return {"ok": True, "detail": f"Terminated {terminated} session(s)"}
 
 # ─────────────────────── GET ONE ───────────────────────
+# Доступ: Super, Admin, Manager, Support
 @router.get("/{code_id}")
 def get_code(
     code_id: int,
     db: DB = Depends(get_db),
+    current_admin: models.AdminUser = Depends(require_admin("super", "admin", "manager", "support")),
 ):
     c = (
         db.query(models.AccessCode)
@@ -517,10 +531,12 @@ def get_code(
     }
 
 # ─────────────────────── DELETE ───────────────────────
+# Доступ: Super, Admin (Managers НЕ можуть видаляти)
 @router.delete("/{code_id}", status_code=204)
 def delete_code(
     code_id: int,
     db: DB = Depends(get_db),
+    current_admin: models.AdminUser = Depends(require_admin("super", "admin")),
 ):
     c = db.get(models.AccessCode, code_id)
     if not c:
@@ -530,11 +546,12 @@ def delete_code(
     return Response(status_code=204)
 
 # ───────────────────────── Bulk JSON ─────────────────────────
+# Доступ: Super, Admin, Manager
 @router.post("/bulk")
 def create_codes_json(
     data: schemas.AccessCodeCreate,
     db: DB = Depends(get_db),
-    current=Depends(require_admin_token),  # потрібен для batch.generated_by
+    current_admin: models.AdminUser = Depends(require_admin("super", "admin", "manager")),
 ):
     amount = data.amount
     allowed = data.max_concurrent_sessions or data.allowed_sessions or 1
@@ -558,7 +575,7 @@ def create_codes_json(
         elif hasattr(BatchModel, "name"): batch_kwargs["name"] = data.event
         elif hasattr(BatchModel, "title"): batch_kwargs["title"] = data.event
         if hasattr(BatchModel, "generated_by"):
-            batch_kwargs["generated_by"] = str(getattr(current, "id", "")) or ""
+            batch_kwargs["generated_by"] = str(getattr(current_admin, "id", "")) or ""
 
         batch = BatchModel(**batch_kwargs)
         db.add(batch); db.flush()
@@ -604,11 +621,12 @@ def create_codes_json(
     return {"codes": codes, "ids": ids, "batch_id": batch_id}
 
 # ───────────────────────── Bulk CSV ─────────────────────────
+# Доступ: Super, Admin, Manager
 @router.post("/bulk/csv", response_class=StreamingResponse)
 def create_codes_csv(
     data: schemas.AccessCodeCreate,
     db: DB = Depends(get_db),
-    current=Depends(require_admin_token),
+    current_admin: models.AdminUser = Depends(require_admin("super", "admin", "manager")),
 ):
     amount = data.amount
     allowed = data.max_concurrent_sessions or data.allowed_sessions or 1
@@ -627,7 +645,7 @@ def create_codes_csv(
         elif hasattr(BatchModel, "name"): batch_kwargs["name"] = data.event
         elif hasattr(BatchModel, "title"): batch_kwargs["title"] = data.event
         if hasattr(BatchModel, "generated_by"):
-            batch_kwargs["generated_by"] = getattr(current, "id", None) or 0
+            batch_kwargs["generated_by"] = getattr(current_admin, "id", None) or 0
 
         batch = BatchModel(**batch_kwargs)
         db.add(batch); db.flush()

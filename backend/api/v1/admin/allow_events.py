@@ -1,4 +1,3 @@
-# backend/api/v1/admin/allow_events.py
 from __future__ import annotations
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
@@ -12,6 +11,7 @@ from backend.api.deps import require_admin  # фабрика: require_admin("adm
 
 router = APIRouter(
     tags=["admin:codes-events"],
+    # Обмеження: тільки Admin та Super можуть змінювати прив'язки подій
     dependencies=[Depends(require_admin("admin", "super"))],
 )
 
@@ -70,7 +70,7 @@ def set_allowed_events(code_id: int, payload: SetAllowedEventsIn, db: DB = Depen
             ).all()
             ids.update(eid for (eid,) in rows)
             # перевірити, що всі slugs знайдені
-            found = {eid for (eid,) in rows}
+            # found = {eid for (eid,) in rows} # невикористана змінна
             # зворотне відображення slug->id для чіткого репорту про помилку
             all_slug_rows = db.execute(
                 select(models.Event.slug, models.Event.id).where(models.Event.slug.in_(slugs))
