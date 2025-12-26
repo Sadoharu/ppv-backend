@@ -12,46 +12,60 @@ class Settings(BaseSettings):
 
     redis_url: str = Field("redis://localhost:6379/0", env="REDIS_URL")
 
-    # JWT/сесії
+    # JWT / sessions
     access_ttl_minutes: int = Field(15, env="ACCESS_TTL_MINUTES")
-    refresh_ttl_days:   int = Field(7, env="REFRESH_TTL_DAYS")
-    sliding_window_enabled:   bool = Field(True,  env="SLIDING_WINDOW_ENABLED")
-    sliding_extend_seconds:   int  = Field(120,   env="SLIDING_EXTEND_SECONDS")
-    access_grace_seconds:     int  = Field(60,    env="ACCESS_GRACE_SECONDS")
-    reuse_grace_on_disconnect:bool = Field(True,  env="REUSE_GRACE_ON_DISCONNECT")
-    auto_release_idle_minutes:int  = Field(10,    env="AUTO_RELEASE_IDLE_MINUTES")
+    refresh_ttl_days:   int = Field(7,  env="REFRESH_TTL_DAYS")
+    sliding_window_enabled:    bool = Field(True,  env="SLIDING_WINDOW_ENABLED")
+    sliding_extend_seconds:    int  = Field(120,   env="SLIDING_EXTEND_SECONDS")
+    access_grace_seconds:      int  = Field(60,    env="ACCESS_GRACE_SECONDS")
+    reuse_grace_on_disconnect: bool = Field(True,  env="REUSE_GRACE_ON_DISCONNECT")
+    auto_release_idle_minutes: int  = Field(10,    env="AUTO_RELEASE_IDLE_MINUTES")
     session_retention_days: int = Field(30, env="SESSION_RETENTION_DAYS")
     session_events_retention_days: int = Field(30, env="SESSION_EVENTS_RETENTION_DAYS")
     refresh_tokens_retention_days: int = Field(30, env="REFRESH_TOKENS_RETENTION_DAYS")
     gc_interval_minutes: int = Field(60, env="GC_INTERVAL_MINUTES")
     gc_batch_size: int = Field(1000, env="GC_BATCH_SIZE")
 
-    # безпека / CORS
+    # Security / CORS
     allowed_hosts: str = Field("127.0.0.1,localhost", env="ALLOWED_HOSTS")
-    allowed_origins: str = Field("", env="ALLOWED_ORIGINS")  # ← залишаємо лише одне
+    allowed_origins: str = Field("", env="ALLOWED_ORIGINS")
+    
 
-    # генерація кодів
-    code_length:  int    = Field(10,  env="CODE_LENGTH")
-    code_alphabet:str    = Field("ABCDEFGHJKMNPQRSTUVWXYZ23456789", env="CODE_ALPHABET")
+    # Code generation
+    code_length:  int = Field(10, env="CODE_LENGTH")
+    code_alphabet: str = Field("ABCDEFGHJKMNPQRSTUVWXYZ23456789", env="CODE_ALPHABET")
 
-    # інше
-    jwt_secret:        str = Field(..., env='JWT_SECRET')
-    admin_jwt_secret:  str = Field(..., env='ADMIN_JWT_SECRET')
-    db_url:            str = Field(..., env='DB_URL')
-    admin_token_ttl_h: int = Field(2,  env='ADMIN_TOKEN_TTL_H')
+    # Event Access Token (EAT) TTL (seconds)
+    event_token_ttl_seconds: int = Field(600, env="EVENT_TOKEN_TTL_SECONDS")
+
+    # Admin
+    jwt_secret:       str = Field(..., env="JWT_SECRET")
+    admin_jwt_secret: str = Field(..., env="ADMIN_JWT_SECRET")
+    db_url:           str = Field(..., env="DB_URL")
+    admin_token_ttl_h: int = Field(2, env="ADMIN_TOKEN_TTL_H")
     admin_root_email:  str | None = Field(default=None, env="ADMIN_ROOT_EMAIL")
     admin_root_pass:   str | None = Field(default=None, env="ADMIN_ROOT_PASS")
-    rate_attempts:     int = Field(5,  env="RATE_ATTEMPTS")
-    rate_base:         int = Field(1,  env="RATE_BASE")
+    rate_attempts:     int = Field(5, env="RATE_ATTEMPTS")
+    rate_base:         int = Field(1, env="RATE_BASE")
+    admin_refresh_ttl_days: int = Field(7, env="ADMIN_REFRESH_TTL_DAYS")
+
+    # Custom HTML rendering policy
+    # ⚠️ Використовуй custom_html_allow_all лише у дев/стендах!
+    custom_html_allow_all: bool = Field(False, env="CUSTOM_HTML_ALLOW_ALL")
+    # Дозволити будь-які HTTPS-джерела (без inline/eval); безпечніше ніж allow_all
+    custom_html_allow_any_https: bool = Field(False, env="CUSTOM_HTML_ALLOW_ANY_HTTPS")
+    # Whitelist CDN для стилів/скриптів (кома-сепаратор)
+    custom_html_allowed_style_src: str = Field("", env="CUSTOM_HTML_ALLOWED_STYLE_SRC")
+    custom_html_allowed_script_src: str = Field("", env="CUSTOM_HTML_ALLOWED_SCRIPT_SRC")
 
     model_config = SettingsConfigDict(
         env_file=ROOT_DIR / ".env",
-        env_file_encoding='utf-8',
+        env_file_encoding="utf-8",
         extra="ignore",
     )
 
     @property
-    def allowed_hosts_list(self) -> list[str]:
+    def allowed_hosts_list(self) -> List[str]:
         return [h.strip() for h in self.allowed_hosts.split(",") if h.strip()]
 
     @property

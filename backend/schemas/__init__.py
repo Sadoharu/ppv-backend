@@ -95,3 +95,9 @@ from .events import (
     EventOut,
     EventOutShort,
 )
+
+# ───── only-custom pages (адмін) ─────
+from .event_page import (
+    EventPageUpdate,
+    EventPageOut,
+)

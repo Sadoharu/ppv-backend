@@ -9,36 +9,52 @@ from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
 ALLOWED = {"none", "html", "sandbox", "safe", "iframe"}
 ALIASES = {"safe": "sandbox", "iframe": "html"}
 
-
 class EventStatus(str, Enum):
     draft = "draft"
     scheduled = "scheduled"
-    published = "published"   # ← є в БД, щоб не ловити validation error
+    published = "published"
     live = "live"
     ended = "ended"
     archived = "archived"
-
 
 class CustomMode(str, Enum):
     none = "none"
     html = "html"
     sandbox = "sandbox"
 
-
 class EventBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
     slug: str = Field(..., min_length=1, max_length=200)
     status: EventStatus = EventStatus.draft
+
+    # таймінги
     starts_at: Optional[datetime] = None
     ends_at: Optional[datetime] = None
-    thumbnail_url: Optional[HttpUrl | str] = None  # дозволяємо й plain str
+
+    # метадані/прев’ю
+    thumbnail_url: Optional[HttpUrl | str] = None
     short_description: Optional[str] = None
+
+    # (опційно) маніфест плеєра: сторінка може обійтись і без цього
     player_manifest_url: Optional[str] = None
+
+    # [DEPRECATED] старий механізм кастомізації — залишено для сумісності
     custom_mode: CustomMode = CustomMode.none
     custom_html: Optional[str] = None
     custom_css: Optional[str] = None
     custom_js: Optional[str] = None
+
+    # ТЕМА (залежить від твоєї логіки, тому лишаємо як було)
     theme: Optional[str] = None
+
+    # ------- ONLY-CUSTOM PAGE (нове) -------
+    page_html: str = Field(default="", description="Повний HTML-каркас без <script>")
+    page_css: Optional[str] = Field(default="", description="Користувацькі стилі")
+    page_js: Optional[str] = Field(default="", description="Користувацький JS (віддається окремим файлом)")
+    runtime_js_version: str = Field(default="latest", min_length=1, max_length=32,
+                                    description="Версія обов’язкового PPV runtime")
+    assets_base_url: Optional[str] = Field(default=None, max_length=512,
+                                           description="CDN/S3 базовий префікс для асетів сторінки")
 
     @field_validator("slug")
     @classmethod
@@ -63,6 +79,7 @@ class EventBase(BaseModel):
         if starts and ends and ends < starts:
             raise ValueError("ends_at must be >= starts_at")
         return ends
+
     @field_validator("custom_mode", mode="before")
     @classmethod
     def normalize_mode(cls, v):
@@ -73,10 +90,9 @@ class EventBase(BaseModel):
             raise ValueError("invalid custom_mode")
         return ALIASES.get(s, s)
 
-
 class EventCreate(EventBase):
+    """Створення події тепер приймає і only-custom поля сторінки."""
     pass
-
 
 class EventUpdate(BaseModel):
     title: Optional[str] = None
@@ -84,15 +100,26 @@ class EventUpdate(BaseModel):
     status: Optional[EventStatus] = None
     starts_at: Optional[datetime] = None
     ends_at: Optional[datetime] = None
+
     thumbnail_url: Optional[HttpUrl | str] = None
     short_description: Optional[str] = None
     player_manifest_url: Optional[str] = None
     hls_url: Optional[str] = None  # fallback для старих клієнтів
+
+    # [DEPRECATED] — лишаємо поля, але фронт може не використовувати
     custom_mode: Optional[CustomMode] = None
     custom_html: Optional[str] = None
     custom_css: Optional[str] = None
     custom_js: Optional[str] = None
+
     theme: Optional[str] = None
+
+    # ------- ONLY-CUSTOM PAGE (нове) -------
+    page_html: Optional[str] = Field(default=None)
+    page_css: Optional[str] = Field(default=None)
+    page_js: Optional[str] = Field(default=None)
+    runtime_js_version: Optional[str] = Field(default=None, min_length=1, max_length=32)
+    assets_base_url: Optional[str] = Field(default=None, max_length=512)
 
     @field_validator("slug")
     @classmethod
@@ -111,6 +138,7 @@ class EventUpdate(BaseModel):
         if starts and ends and ends < starts:
             raise ValueError("ends_at must be >= starts_at")
         return ends
+
     @field_validator("custom_mode", mode="before")
     @classmethod
     def normalize_mode(cls, v):
@@ -121,7 +149,6 @@ class EventUpdate(BaseModel):
             raise ValueError("invalid custom_mode")
         return ALIASES.get(s, s)
 
-
 class EventOut(BaseModel):
     id: int
     title: str
@@ -129,18 +156,27 @@ class EventOut(BaseModel):
     status: EventStatus
     starts_at: Optional[datetime] = None
     ends_at: Optional[datetime] = None
+
     thumbnail_url: Optional[str] = None
     short_description: Optional[str] = None
     player_manifest_url: Optional[str] = None
+
+    # [DEPRECATED] — віддаємо як було, щоб старий фронт не впав
     custom_mode: CustomMode
-    # повна версія:
     custom_html: Optional[str] = None
     custom_css: Optional[str] = None
     custom_js: Optional[str] = None
+
     theme: Optional[str] = None
 
-    model_config = ConfigDict(from_attributes=True)
+    # ------- ONLY-CUSTOM PAGE (нове, корисно для адмінки/редакторів) -------
+    page_html: str
+    page_css: Optional[str] = None
+    page_js: Optional[str] = None
+    runtime_js_version: str
+    assets_base_url: Optional[str] = None
 
+    model_config = ConfigDict(from_attributes=True)
 
 class EventOutShort(BaseModel):
     id: int

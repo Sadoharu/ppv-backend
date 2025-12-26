@@ -2,6 +2,7 @@ import asyncio
 
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
+from fastapi.responses import ORJSONResponse
 
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
@@ -22,13 +23,18 @@ from backend.api.v1.admin.allow_events import router as admin_allow_events_route
 from backend.api.v1.admin.events import router as admin_events_router
 from backend.api.v1.admin.sessions import router as admin_sessions_router
 from backend.api.v1.admin.ws import router as admin_ws_router
+from backend.api.v1.admin.event_page_admin import router as admin_event_page_router
+
 
 from backend.api.v1.client.auth import router as client_auth_router
 from backend.api.v1.client.ws import router as client_ws_router
 from backend.api.v1.client.events_access import router as events_router
+from backend.api.v1.client.event_page import (router as event_page_router, pretty_router as pages_pretty_router)
 
 from backend.api.v1.public.events import router as public_events_router
-from backend.api.v1.public.custom import router as public_custom_router
+
+from backend.api.v1.assets.runtime_and_user_js import router as assets_router
+
 
 from backend.models import AdminUser
 from backend.workers.idle_reaper import run_idle_reaper
@@ -92,7 +98,8 @@ setup_logging()
 app = FastAPI(
     title="Access Code Portal API",
     version="0.6.0",
-    debug=settings.debug
+    debug=settings.debug,
+    default_response_class=ORJSONResponse
 )
 
 # PROD-захисти
@@ -158,16 +165,34 @@ async def on_shutdown() -> None:
 # Routers
 if health_router:
     app.include_router(health_router)
+
+# --- CLIENT (автентифікований глядач) ---------------------------------------
 app.include_router(client_auth_router, prefix="/api/auth", tags=["client:auth"])
 app.include_router(client_ws_router, prefix="/api", tags=["client:ws"])
 app.include_router(events_router, prefix="/api/events",  tags=["client:EventAccess"])
+
+# --- ADMIN -------------------------------------------------------------------
 app.include_router(admin_sessions_router, prefix="/api/admin", tags=["admin:sessions"])
 app.include_router(admin_codes_router, prefix="/api/admin/codes", tags=["admin:codes"])
 app.include_router(analytics_router, prefix="/api/admin/analytics", tags=["admin:analytics"])
 app.include_router(admin_auth_router, prefix="/api/admin", tags=["admin:auth"])
 app.include_router(admin_ws_router, prefix="/api/ws", tags=["admin:ws"])
-app.include_router(public_events_router, prefix="/api", tags=["public:events"])
-app.include_router(public_custom_router, prefix="/api", tags=["public:custom"])
 app.include_router(admin_events_router, prefix="/api/admin/events", tags=["admin:events"])
+app.include_router(admin_event_page_router,  prefix="/api/admin/events",   tags=["admin:pages"])
 app.include_router(admin_allow_events_router, prefix="/api/admin/codes", tags=["admin:codes-events"])
+
+
+# --- PUBLIC (JSON каталоги та картки) ----------------------------------------
+app.include_router(public_events_router, prefix="/api", tags=["public:events"])
+
+# --- PUBLIC HTML (СТОРІНКИ) --------------------------------------------------
+# Повертають повноцінний HTML з CSP/nonce і інʼєкцією runtime — без /api
+app.include_router(event_page_router,   prefix="", tags=["public:pages"])
+app.include_router(pages_pretty_router, prefix="", tags=["public:pages"])
+
+# --- PUBLIC ASSETS (runtime та user.js) --------------------------------------
+# Також без /api, щоб їх спокійно віддавали CDN/проксі
+app.include_router(assets_router, prefix="", tags=["public:assets"])
+
+
 

@@ -13,3 +13,4 @@ psycopg2-binary>=2.9.9
 bcrypt
 redis>=5.0.1
 python-multipart
+orjson
