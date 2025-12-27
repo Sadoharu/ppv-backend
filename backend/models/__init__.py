@@ -1,7 +1,5 @@
 # backend/models/__init__.py
 # ============================================================================
-# backend/models.py (v 0.6) — ONLY-CUSTOM PAGES ready
-# ============================================================================
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy import (
     Boolean, Column, DateTime, ForeignKey, Integer, String, UniqueConstraint,
@@ -34,6 +32,13 @@ class Event(Base):
 
     # (за потреби) маніфест плеєра, але сторінка може обійтись і без плеєра
     player_manifest_url = Column(Text, nullable=True)
+
+    # --- Стрімінг та Аналітика (Bunny CDN + Mux) ---
+    # Шлях до відео у Bunny CDN (для підпису токеном), наприклад "/video/playlist.m3u8"
+    bunny_video_path = Column(String(512), nullable=True)
+    # Специфічний ключ середовища Mux Data для цієї події (перекриває глобальний)
+    mux_env_key = Column(String(128), nullable=True)
+    # -----------------------------------------------
 
     # ======= [DEPRECATED, залишено для зворотної сумісності] =================
     # Механіка старих “custom_*”

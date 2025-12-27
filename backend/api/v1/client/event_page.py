@@ -13,7 +13,7 @@ from backend import models
 from backend.services.csp import gen_nonce, build_csp_headers
 from backend.services.sanitizer import strip_scripts_and_inline_handlers
 from backend.services.etag import calc_event_etag, not_modified, set_etag_header
-from backend.services.media_security import BunnySecurityService  # <-- IMPORT
+from backend.services.media_security import BunnySecurityService
 
 router = APIRouter(prefix="/events", tags=["public:pages"])
 pretty_router = APIRouter(prefix="/p", tags=["public:pages"])
@@ -116,12 +116,13 @@ def _render_event(ev: models.Event, request: Request, *, is_preview: bool) -> Re
             expire_seconds=10800 # 3 години
         )
         
-        # Для Mux бажано мати User ID, але тут ми в публічному контексті (або перед гейтом).
-        # Якщо авторизація відбувається пізніше на клієнті, user_id можна прокинути з JS.
-        # Тут ставимо anonymous або None.
+        # Визначаємо ключ Mux (спочатку з івенту, потім глобальний)
+        event_mux_key = getattr(ev, "mux_env_key", None)
+        
         mux_data = BunnySecurityService.get_mux_metadata(
             event_title=ev.title,
             video_id=str(ev.id),
+            env_key=event_mux_key, # Передаємо конкретний ключ
             user_id=None 
         )
     # --- BUNNY & MUX LOGIC END ---
@@ -136,7 +137,7 @@ def _render_event(ev: models.Event, request: Request, *, is_preview: bool) -> Re
             "description": getattr(ev, "short_description", None),
             # Передаємо фінальний URL (підписаний або публічний)
             "hls": playback_url, 
-            # Передаємо конфігурацію Mux
+            # Передаємо конфігурацію Mux (з правильним env_key)
             "mux": mux_data,
             "cdn": getattr(ev, "assets_base_url", None),
             "preview": bool(is_preview),

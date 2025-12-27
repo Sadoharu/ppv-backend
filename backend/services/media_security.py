@@ -15,19 +15,16 @@ class BunnySecurityService:
         :param expire_seconds: Час життя посилання в секундах (за замовчуванням 3 години)
         """
         
-        # Якщо ключі не задані (наприклад, локальний дев без стрімінгу), повертаємо як є або пустий рядок
+        # Якщо ключі не задані, повертаємо шлях як є (fallback)
         if not settings.bunny_security_key or not settings.bunny_pull_zone_host:
-            # Можна кидати помилку або повертати заглушку
             return video_path
         
-        # Видаляємо слеш на початку, якщо він є, для коректної конкатенації
+        # Видаляємо слеш на початку для коректної конкатенації
         path = video_path.strip("/")
         
         expires = int(time.time()) + expire_seconds
         
-        # Формування токена для Bunny CDN (Token Authentication)
-        # Логіка: sha256(securityKey + path + expires)
-        
+        # Формування токена: sha256(securityKey + path + expires)
         token_content = f"{settings.bunny_security_key}{path}{expires}"
         
         md5_hash = hashlib.md5(token_content.encode('utf-8')).digest()
@@ -38,19 +35,24 @@ class BunnySecurityService:
             .replace("=", "")
 
         # Формування фінального URL
-        # Bunny CDN формат: https://host/path?token=XYZ&expires=123
         base_url = urljoin(settings.bunny_pull_zone_host, path)
         signed_url = f"{base_url}?token={token}&expires={expires}"
         
         return signed_url
 
     @staticmethod
-    def get_mux_metadata(event_title: str, video_id: str, user_id: str = None):
+    def get_mux_metadata(event_title: str, video_id: str, env_key: str = None, user_id: str = None):
         """
-        Формує метадані для Mux Data, які будуть передані на фронтенд.
+        Формує метадані для Mux Data.
         """
+        # Використовуємо переданий ключ (пріоритет), або глобальний з налаштувань
+        final_key = env_key or settings.mux_env_key
+        
+        if not final_key:
+            return None
+
         return {
-            "env_key": settings.mux_env_key,
+            "env_key": final_key,
             "metadata": {
                 "video_id": video_id,
                 "video_title": event_title,

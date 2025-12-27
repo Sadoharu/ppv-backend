@@ -38,10 +38,12 @@ class EventBase(BaseModel):
     # (опційно) маніфест плеєра: публічний URL або fallback
     player_manifest_url: Optional[str] = None
     
-    # --- NEW: Шлях до відео у Bunny CDN (для підпису токеном) ---
-    # Наприклад: /my-pull-zone/video/playlist.m3u8
+    # --- Стрімінг та Аналітика ---
+    # Шлях до відео у Bunny CDN
     bunny_video_path: Optional[str] = Field(default=None, max_length=512)
-    # ------------------------------------------------------------
+    # Специфічний ключ середовища Mux Data для цієї події (перекриває глобальний)
+    mux_env_key: Optional[str] = Field(default=None, max_length=100)
+    # -----------------------------
 
     # [DEPRECATED] старий механізм
     custom_mode: CustomMode = CustomMode.none
@@ -109,6 +111,7 @@ class EventUpdate(BaseModel):
     
     # --- NEW ---
     bunny_video_path: Optional[str] = None
+    mux_env_key: Optional[str] = None
     # -----------
 
     custom_mode: Optional[CustomMode] = None
@@ -166,6 +169,7 @@ class EventOut(BaseModel):
     
     # --- NEW ---
     bunny_video_path: Optional[str] = None
+    mux_env_key: Optional[str] = None
     # -----------
 
     custom_mode: CustomMode
