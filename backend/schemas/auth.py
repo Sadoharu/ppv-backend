@@ -1,3 +1,4 @@
+# backend/schemas/auth.py
 from pydantic import BaseModel, EmailStr, constr
 
 class LoginRequest(BaseModel):

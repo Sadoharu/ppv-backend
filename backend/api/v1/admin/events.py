@@ -1,3 +1,4 @@
+# backend/api/v1/admin/events.py
 from fastapi import APIRouter, Depends, HTTPException, Body, Query, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session as DB

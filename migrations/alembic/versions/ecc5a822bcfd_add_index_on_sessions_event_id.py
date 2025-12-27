@@ -1,3 +1,4 @@
+# migrations/alembic/versions/ecc5a822bcfd_add_index_on_sessions_event_id.py
 """add index on sessions.event_id
 
 Revision ID: ecc5a822bcfd

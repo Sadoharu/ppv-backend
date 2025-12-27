@@ -1,3 +1,4 @@
+# backend/schemas/__init__.py
 from __future__ import annotations
 
 # 1. Generic/Shared

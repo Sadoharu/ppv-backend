@@ -1,3 +1,4 @@
+# backend/api/v1/delete/sessions.py
 # backend/api/v1/sessions.py
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session

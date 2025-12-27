@@ -1,3 +1,4 @@
+# backend/api/v1/client/custom_blocks.py
 # backend/api/v1/public/custom_blocks.py
 from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response

@@ -1,4 +1,4 @@
-# backend/config.py
+# backend/core/config.py
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 from pathlib import Path
@@ -30,7 +30,6 @@ class Settings(BaseSettings):
     allowed_hosts: str = Field("127.0.0.1,localhost", env="ALLOWED_HOSTS")
     allowed_origins: str = Field("", env="ALLOWED_ORIGINS")
     
-
     # Code generation
     code_length:  int = Field(10, env="CODE_LENGTH")
     code_alphabet: str = Field("ABCDEFGHJKMNPQRSTUVWXYZ23456789", env="CODE_ALPHABET")
@@ -50,13 +49,16 @@ class Settings(BaseSettings):
     admin_refresh_ttl_days: int = Field(7, env="ADMIN_REFRESH_TTL_DAYS")
 
     # Custom HTML rendering policy
-    # ⚠️ Використовуй custom_html_allow_all лише у дев/стендах!
     custom_html_allow_all: bool = Field(False, env="CUSTOM_HTML_ALLOW_ALL")
-    # Дозволити будь-які HTTPS-джерела (без inline/eval); безпечніше ніж allow_all
     custom_html_allow_any_https: bool = Field(False, env="CUSTOM_HTML_ALLOW_ANY_HTTPS")
-    # Whitelist CDN для стилів/скриптів (кома-сепаратор)
     custom_html_allowed_style_src: str = Field("", env="CUSTOM_HTML_ALLOWED_STYLE_SRC")
     custom_html_allowed_script_src: str = Field("", env="CUSTOM_HTML_ALLOWED_SCRIPT_SRC")
+
+    # --- NEW: Streaming & Analytics ---
+    bunny_security_key: str = Field("", env="BUNNY_SECURITY_KEY")
+    bunny_pull_zone_host: str = Field("", env="BUNNY_PULL_ZONE_HOST")
+    mux_env_key: str = Field("", env="MUX_ENV_KEY")
+    # ----------------------------------
 
     model_config = SettingsConfigDict(
         env_file=ROOT_DIR / ".env",

@@ -1,3 +1,4 @@
+# migrations/alembic/versions/1b7bd2219bee_add_index_on_allow_all_events.py
 """add index on allow_all_events
 
 Revision ID: 1b7bd2219bee

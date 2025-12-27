@@ -1,3 +1,4 @@
+# migrations/alembic/versions/7b7ea95b1bc6_add_index_on_code_allowed_events.py
 """add index on code_allowed_events
 
 Revision ID: 7b7ea95b1bc6

@@ -1,3 +1,4 @@
+# backend/services/authn/lookup.py
 #unused
 from __future__ import annotations
 from sqlalchemy.orm import Session as DB

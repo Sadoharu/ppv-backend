@@ -13,6 +13,7 @@ from backend import models
 from backend.services.csp import gen_nonce, build_csp_headers
 from backend.services.sanitizer import strip_scripts_and_inline_handlers
 from backend.services.etag import calc_event_etag, not_modified, set_etag_header
+from backend.services.media_security import BunnySecurityService  # <-- IMPORT
 
 router = APIRouter(prefix="/events", tags=["public:pages"])
 pretty_router = APIRouter(prefix="/p", tags=["public:pages"])
@@ -100,6 +101,31 @@ def _render_event(ev: models.Event, request: Request, *, is_preview: bool) -> Re
     nonce = gen_nonce()
     csp_headers = build_csp_headers(mode="sandbox", nonce=nonce)
 
+    # --- BUNNY & MUX LOGIC START ---
+    # Отримуємо шлях до відео. Пріоритет: bunny_video_path (signed), fallback: player_manifest_url (public)
+    bunny_path = getattr(ev, "bunny_video_path", None)
+    public_url = getattr(ev, "player_manifest_url", None)
+    
+    playback_url = public_url
+    mux_data = None
+
+    # Якщо є шлях для Bunny, генеруємо підписане посилання
+    if bunny_path:
+        playback_url = BunnySecurityService.generate_signed_url(
+            video_path=bunny_path, 
+            expire_seconds=10800 # 3 години
+        )
+        
+        # Для Mux бажано мати User ID, але тут ми в публічному контексті (або перед гейтом).
+        # Якщо авторизація відбувається пізніше на клієнті, user_id можна прокинути з JS.
+        # Тут ставимо anonymous або None.
+        mux_data = BunnySecurityService.get_mux_metadata(
+            event_title=ev.title,
+            video_id=str(ev.id),
+            user_id=None 
+        )
+    # --- BUNNY & MUX LOGIC END ---
+
     boot = {
         "eventId": ev.id,
         "slug": ev.slug,
@@ -108,7 +134,10 @@ def _render_event(ev: models.Event, request: Request, *, is_preview: bool) -> Re
         "env": {
             "title": ev.title,
             "description": getattr(ev, "short_description", None),
-            "hls": getattr(ev, "player_manifest_url", None),
+            # Передаємо фінальний URL (підписаний або публічний)
+            "hls": playback_url, 
+            # Передаємо конфігурацію Mux
+            "mux": mux_data,
             "cdn": getattr(ev, "assets_base_url", None),
             "preview": bool(is_preview),
         },

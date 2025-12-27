@@ -1,3 +1,4 @@
+# backend/api/v1/delete/admin_events.py
 # backend/api/v1/admin_events.py
 from fastapi import APIRouter, Depends, HTTPException, Body, Query
 from sqlalchemy.orm import Session as DB

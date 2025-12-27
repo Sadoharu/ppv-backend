@@ -1,3 +1,4 @@
+# backend/api/v1/admin/ws.py
 from __future__ import annotations
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, Header, Cookie
 from backend.services.authn.admin_jwt import verify_admin_token

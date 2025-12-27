@@ -1,3 +1,4 @@
+# backend/api/v1/admin/event_page_admin.py
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException

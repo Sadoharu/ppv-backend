@@ -1,3 +1,4 @@
+# backend/api/v1/delete/client_ws.py
 #v0.5
 # backend/api/v1/client_ws.py
 from __future__ import annotations

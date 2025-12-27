@@ -1,3 +1,4 @@
+# migrations/alembic/versions/f87c0d05da92_add_index_on_refresh_tokens_revoked_at.py
 """add index on refresh_tokens.revoked_at
 
 Revision ID: f87c0d05da92

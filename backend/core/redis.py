@@ -1,4 +1,3 @@
-#v0.5
 # backend/core/redis.py
 from __future__ import annotations
 from functools import lru_cache

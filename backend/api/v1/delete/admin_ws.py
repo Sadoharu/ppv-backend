@@ -1,3 +1,4 @@
+# backend/api/v1/delete/admin_ws.py
 # backend/api/v1/admin_ws.py - valid
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 from backend.services.authn.admin_jwt import verify_admin_token

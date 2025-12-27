@@ -1,3 +1,4 @@
+# backend/api/v1/client/events_access.py
 #v0.5
 #backend\routers\events.py
 from __future__ import annotations

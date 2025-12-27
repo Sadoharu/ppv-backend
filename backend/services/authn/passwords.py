@@ -1,3 +1,4 @@
+# backend/services/authn/passwords.py
 #v1.0 - Direct bcrypt implementation
 from __future__ import annotations
 import bcrypt

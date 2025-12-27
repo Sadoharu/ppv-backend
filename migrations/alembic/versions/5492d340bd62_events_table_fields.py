@@ -1,3 +1,4 @@
+# migrations/alembic/versions/5492d340bd62_events_table_fields.py
 """events table + fields
 
 Revision ID: 5492d340bd62

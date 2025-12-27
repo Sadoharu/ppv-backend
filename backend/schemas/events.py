@@ -35,26 +35,28 @@ class EventBase(BaseModel):
     thumbnail_url: Optional[HttpUrl | str] = None
     short_description: Optional[str] = None
 
-    # (опційно) маніфест плеєра: сторінка може обійтись і без цього
+    # (опційно) маніфест плеєра: публічний URL або fallback
     player_manifest_url: Optional[str] = None
+    
+    # --- NEW: Шлях до відео у Bunny CDN (для підпису токеном) ---
+    # Наприклад: /my-pull-zone/video/playlist.m3u8
+    bunny_video_path: Optional[str] = Field(default=None, max_length=512)
+    # ------------------------------------------------------------
 
-    # [DEPRECATED] старий механізм кастомізації — залишено для сумісності
+    # [DEPRECATED] старий механізм
     custom_mode: CustomMode = CustomMode.none
     custom_html: Optional[str] = None
     custom_css: Optional[str] = None
     custom_js: Optional[str] = None
 
-    # ТЕМА (залежить від твоєї логіки, тому лишаємо як було)
     theme: Optional[str] = None
 
-    # ------- ONLY-CUSTOM PAGE (нове) -------
-    page_html: str = Field(default="", description="Повний HTML-каркас без <script>")
-    page_css: Optional[str] = Field(default="", description="Користувацькі стилі")
-    page_js: Optional[str] = Field(default="", description="Користувацький JS (віддається окремим файлом)")
-    runtime_js_version: str = Field(default="latest", min_length=1, max_length=32,
-                                    description="Версія обов’язкового PPV runtime")
-    assets_base_url: Optional[str] = Field(default=None, max_length=512,
-                                           description="CDN/S3 базовий префікс для асетів сторінки")
+    # ------- ONLY-CUSTOM PAGE -------
+    page_html: str = Field(default="")
+    page_css: Optional[str] = Field(default="")
+    page_js: Optional[str] = Field(default="")
+    runtime_js_version: str = Field(default="latest", min_length=1, max_length=32)
+    assets_base_url: Optional[str] = Field(default=None, max_length=512)
 
     @field_validator("slug")
     @classmethod
@@ -91,7 +93,6 @@ class EventBase(BaseModel):
         return ALIASES.get(s, s)
 
 class EventCreate(EventBase):
-    """Створення події тепер приймає і only-custom поля сторінки."""
     pass
 
 class EventUpdate(BaseModel):
@@ -104,9 +105,12 @@ class EventUpdate(BaseModel):
     thumbnail_url: Optional[HttpUrl | str] = None
     short_description: Optional[str] = None
     player_manifest_url: Optional[str] = None
-    hls_url: Optional[str] = None  # fallback для старих клієнтів
+    hls_url: Optional[str] = None  # fallback
+    
+    # --- NEW ---
+    bunny_video_path: Optional[str] = None
+    # -----------
 
-    # [DEPRECATED] — лишаємо поля, але фронт може не використовувати
     custom_mode: Optional[CustomMode] = None
     custom_html: Optional[str] = None
     custom_css: Optional[str] = None
@@ -114,7 +118,6 @@ class EventUpdate(BaseModel):
 
     theme: Optional[str] = None
 
-    # ------- ONLY-CUSTOM PAGE (нове) -------
     page_html: Optional[str] = Field(default=None)
     page_css: Optional[str] = Field(default=None)
     page_js: Optional[str] = Field(default=None)
@@ -160,8 +163,11 @@ class EventOut(BaseModel):
     thumbnail_url: Optional[str] = None
     short_description: Optional[str] = None
     player_manifest_url: Optional[str] = None
+    
+    # --- NEW ---
+    bunny_video_path: Optional[str] = None
+    # -----------
 
-    # [DEPRECATED] — віддаємо як було, щоб старий фронт не впав
     custom_mode: CustomMode
     custom_html: Optional[str] = None
     custom_css: Optional[str] = None
@@ -169,7 +175,7 @@ class EventOut(BaseModel):
 
     theme: Optional[str] = None
 
-    # ------- ONLY-CUSTOM PAGE (нове, корисно для адмінки/редакторів) -------
+    # Only-custom fields
     page_html: str
     page_css: Optional[str] = None
     page_js: Optional[str] = None
